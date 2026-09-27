@@ -1,0 +1,13 @@
+{
+  "name": "通知テスト",
+  "short_name": "通知テスト",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1b6e8f",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

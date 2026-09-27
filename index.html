@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通知テスト</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root { line-break: strict; }
+  body { font-family: "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 1.125rem; line-height: 1.8;
+         margin: 0; padding: 24px 16px; color: #1a1a1a; background: #fff; }
+  h1 { font-size: 1.5rem; margin: 0 0 16px; }
+  button { display: block; width: 100%; min-height: 56px; font-size: 1.25rem; font-weight: 700;
+           border: 0; border-radius: 12px; background: #1b6e8f; color: #fff; margin: 16px 0; }
+  button:disabled { background: #888; }
+  .box { border: 2px solid #1b6e8f; border-radius: 12px; padding: 12px 16px; margin: 16px 0; }
+  .ng { border-color: #b3261e; }
+  textarea { width: 100%; box-sizing: border-box; height: 180px; font-size: 0.875rem; }
+  code { font-size: 1rem; }
+</style>
+</head>
+<body>
+<h1>iPhone 通知テスト</h1>
+<div id="status" class="box">確認中…</div>
+<button id="sub">🔔 通知を受け取る</button>
+<div id="out" hidden>
+  <p><strong>下の文字列をコピーして、Claude のチャットに貼ってください。</strong></p>
+  <textarea id="json" readonly></textarea>
+  <button id="copy">📋 コピーする</button>
+</div>
+<script>
+const VAPID = "BFHiusNJQWL1gpMwae5Eqp_c1jx_9_JngSMQjn1nTjy46itTQ8jwtuCppFgkVP_R8uNsOvfZBcGgstLfIur7mj0";
+const $ = (id) => document.getElementById(id);
+const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const hasDeclarative = 'pushManager' in window;
+const lines = [];
+lines.push(standalone ? '✅ ホーム画面から開いています' : '⚠️ まだSafariのタブで開いています。「共有」→「ホーム画面に追加」をして、ホーム画面のアイコンから開き直してください');
+lines.push(hasDeclarative ? '✅ 新方式（Declarative Web Push）に対応' : 'ℹ️ 新方式は非対応。旧方式で試します');
+$('status').innerHTML = lines.join('<br>');
+if (!standalone) $('status').classList.add('ng');
+
+function key(b64) {
+  const s = (b64 + '='.repeat((4 - b64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+$('sub').onclick = async () => {
+  $('sub').disabled = true;
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('通知が許可されませんでした（' + perm + '）');
+    const opts = { userVisibleOnly: true, applicationServerKey: key(VAPID) };
+    let sub, method;
+    if (hasDeclarative) {
+      sub = await window.pushManager.subscribe(opts); method = 'declarative';
+    } else {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      await navigator.serviceWorker.ready;
+      sub = await reg.pushManager.subscribe(opts); method = 'serviceworker';
+    }
+    $('json').value = JSON.stringify({ method, ua: navigator.userAgent, sub });
+    $('out').hidden = false;
+  } catch (e) {
+    $('status').innerHTML += '<br>❌ ' + e.message;
+    $('status').classList.add('ng');
+    $('sub').disabled = false;
+  }
+};
+$('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('json').value); $('copy').textContent = '✅ コピーしました'; }
+  catch (e) { $('json').select(); }
+};
+</script>
+</body>
+</html>
