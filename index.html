@@ -24,6 +24,7 @@
 <body>
 <h1>iPhone 通知テスト</h1>
 <div id="status" class="box">確認中…</div>
+<div id="done" class="box" hidden>✅ 通知の登録は済んでいます。<br>このページは閉じて大丈夫です。通知は自動で届きます。</div>
 <button id="sub">🔔 通知を受け取る</button>
 <div id="out" hidden>
   <p><strong>下の文字列をコピーして、Claude のチャットに貼ってください。</strong></p>
@@ -67,6 +68,19 @@ $('sub').onclick = async () => {
     $('sub').disabled = false;
   }
 };
+// 登録済みなら、ボタンではなく「済み」を出す（開くたびに同じ画面が出て迷わないように）
+(async () => {
+  try {
+    const pm = hasDeclarative ? window.pushManager
+      : (await navigator.serviceWorker.getRegistration())?.pushManager;
+    const sub = pm && await pm.getSubscription();
+    if (sub) {
+      $('done').hidden = false;
+      $('sub').textContent = '🔁 登録情報をもう一度表示する';
+      $('sub').style.background = '#555';
+    }
+  } catch (e) {}
+})();
 $('copy').onclick = async () => {
   try { await navigator.clipboard.writeText($('json').value); $('copy').textContent = '✅ コピーしました'; }
   catch (e) { $('json').select(); }
